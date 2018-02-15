@@ -14,6 +14,7 @@ namespace PizzaCutter
         public int MaxCells { get; private set; }
 
         private bool[,] contents;
+        private bool[,] usedCells;
 
         public Pizza(string inputFilePath)
         {
@@ -28,8 +29,9 @@ namespace PizzaCutter
             MinIngredients = int.Parse(metaData[2]);
             MaxCells = int.Parse(metaData[3]);
 
-            //Initialise the contents array for the pizza
+            //Initialise the contents and usedCells arrays for this pizza
             contents = new bool[Width, Height];
+            usedCells = new bool[Width, Height];
 
             //Populate the contents array from the input file
             for(int y = 0; y < Height; y++)
@@ -38,11 +40,11 @@ namespace PizzaCutter
                 {
                     if(fileContents[y + 1][x] == 'T')
                     {
-                        contents[y, x] = TOMATO;
+                        contents[x, y] = TOMATO;
                     }
                     else if(fileContents[y + 1][x] == 'M')
                     {
-                        contents[y, x] = MUSHROOM;
+                        contents[x, y] = MUSHROOM;
                     }
                     else
                     {
@@ -50,6 +52,16 @@ namespace PizzaCutter
                     }
                 }
             }
+        }
+
+        public bool CellTaken(int x, int y)
+        {
+            return usedCells[x, y];
+        }
+
+        public bool GetCell(int x, int y)
+        {
+            return contents[x, y];
         }
     }
 }
