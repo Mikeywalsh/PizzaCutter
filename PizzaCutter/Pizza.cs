@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace PizzaCutter
@@ -14,7 +15,6 @@ namespace PizzaCutter
         public int MaxCells { get; private set; }
 
         private bool[,] contents;
-        private bool[,] usedCells;
 
         public Pizza(string inputFilePath)
         {
@@ -29,12 +29,11 @@ namespace PizzaCutter
             MinIngredients = int.Parse(metaData[2]);
             MaxCells = int.Parse(metaData[3]);
 
-            //Initialise the contents and usedCells arrays for this pizza
+            //Initialise the contents array 
             contents = new bool[Width, Height];
-            usedCells = new bool[Width, Height];
 
             //Populate the contents array from the input file
-            for(int y = 0; y < Height; y++)
+            for (int y = 0; y < Height; y++)
             {
                 for(int x = 0; x < Width; x++)
                 {
@@ -54,14 +53,14 @@ namespace PizzaCutter
             }
         }
 
-        public bool CellTaken(int x, int y)
-        {
-            return usedCells[x, y];
-        }
-
         public bool GetCell(int x, int y)
         {
             return contents[x, y];
+        }
+
+        public int Area
+        {
+            get { return Width * Height; }
         }
     }
 }

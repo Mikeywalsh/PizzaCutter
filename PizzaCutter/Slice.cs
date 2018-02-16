@@ -8,31 +8,26 @@ namespace PizzaCutter
 {
     class Slice
     {
-        private Pizza pizza;
+        private PizzaCutter cutter;
 
         public int X { get; private set; }
         public int Y { get; private set; }
         public int Width { get; private set; }
         public int Height { get; private set; }
 
-        public Slice(Pizza p, int x, int y, int width, int height)
+        public Slice(PizzaCutter pc, int x, int y, int width, int height)
         {
-            pizza = p;
+            cutter = pc;
             X = x;
             Y = y;
             Width = width;
             Height = height;
-
-            if(!ValidSlice())
-            {
-                throw new Exception("Slice is not valid!");
-            }
         }
 
         public bool ValidSlice()
         {
             //If the slice does not fit in the pizza, return false
-            if (X > pizza.Width || Y > pizza.Height || X + Width > pizza.Width || Y + Height > pizza.Height)
+            if (X < 0 || Y < 0 || X > cutter.CurrentPizza.Width || Y > cutter.CurrentPizza.Height || X + Width > cutter.CurrentPizza.Width || Y + Height > cutter.CurrentPizza.Height)
             {
                 return false;
             }
@@ -42,7 +37,7 @@ namespace PizzaCutter
             {
                 for (int x = X; x < X + Width; x++)
                 {
-                    if (pizza.CellTaken(x, y))
+                    if (cutter.CellTaken(x, y) != this && cutter.CellTaken(x,y) != null)
                     {
                         return false;
                     }
@@ -53,27 +48,39 @@ namespace PizzaCutter
             return true;
         }
 
+        public List<Slice> PossibleExpansions()
+        {
+            List<Slice> result = new List<Slice>();
+
+            result.Add(new Slice(cutter, X - 1, Y, Width + 1, Height));
+            result.Add(new Slice(cutter, X, Y, Width + 1, Height));
+            result.Add(new Slice(cutter, X, Y - 1, Width, Height + 1));
+            result.Add(new Slice(cutter, X, Y, Width, Height + 1));
+
+            return result;
+        }
+
         public bool CorrectSlice()
         {
             int tomatos = 0;
             int mushrooms = 0;
 
             //If this slice is too big, return false
-            if(Width * Height > pizza.MaxCells)
+            if(Area > cutter.CurrentPizza.MaxCells)
             {
                 return false;
             }
 
-            //If this slice does not satisfy the minimum ingredient values, return false
+            //Get the amount of tomatoes and mushrooms on this pizza
             for (int y = Y; y < Y + Height; y++)
             {
                 for (int x = X; x < X + Width; x++)
                 {
-                    if (pizza.GetCell(x, y) == Pizza.TOMATO)
+                    if (cutter.CurrentPizza.GetCell(x, y) == Pizza.TOMATO)
                     {
                         tomatos++;
                     }
-                    else if (pizza.GetCell(x, y) == Pizza.MUSHROOM)
+                    else if (cutter.CurrentPizza.GetCell(x, y) == Pizza.MUSHROOM)
                     {
                         mushrooms++;
                     }
@@ -84,8 +91,19 @@ namespace PizzaCutter
                 }
             }
 
+            //If this slice does not satisfy the minimum ingredient values, return false
+            if (tomatos < cutter.CurrentPizza.MinIngredients || mushrooms < cutter.CurrentPizza.MinIngredients)
+            {
+                return false;
+            }
+
             //Return true otherwise
             return true;
+        }
+
+        public int Area
+        {
+            get { return Width * Height; }
         }
     }
 }
