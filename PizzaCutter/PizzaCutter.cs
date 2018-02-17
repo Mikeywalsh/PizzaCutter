@@ -10,127 +10,124 @@ namespace PizzaCutter
     {
         public Pizza CurrentPizza { get; private set; }
         private List<Slice> slices;
-        Random r = new Random();
+        private Random r = new Random();
 
-        private Slice[,] usedCells;
+        private bool[,] usedCells;
+        private List<IntVector2> PossibleCuts;
 
         public PizzaCutter(Pizza p)
         {
             CurrentPizza = p;
-            usedCells = new Slice[p.Width, p.Height];
+            usedCells = new bool[p.Width, p.Height];
+            PossibleCuts = new List<IntVector2>();
 
-            ResetSlicer();
-        }
-
-        public void GenerateInitialSlices()
-        {
-            int sliceCount = (int)Math.Ceiling((double)CurrentPizza.Area / CurrentPizza.MaxCells);
-            int currentSlices = 0;
-
-            while (currentSlices != sliceCount)
+            //Generate a list of possible cuts based on the min ingredients and max cell count for the pizza
+            for (int y = 1; y <= p.MaxCells; y++)
             {
-                int x = r.Next(0, CurrentPizza.Width);
-                int y = r.Next(0, CurrentPizza.Height);
-
-                if (CellTaken(x, y) != null)
+                for (int x = 1; x <= p.MaxCells; x++)
                 {
-                    continue;
-                }
-
-                Slice newSlice = new Slice(this, x, y, 1, 1);
-                if (newSlice.ValidSlice())
-                {
-                    AddSlice(newSlice);
-                    currentSlices++;
-                }
-            }
-        }
-
-        public void ExpandSlices()
-        {
-            List<Slice> newSlices = new List<Slice>(slices);
-
-            for(int i = 0; i < slices.Count; i++)
-            {
-                Slice lastCorrect = null;
-
-                //Temp remove
-                for (int y = slices[i].Y; y < slices[i].Y + slices[i].Height; y++)
-                {
-                    for (int x = slices[i].X; x < slices[i].X + slices[i].Width; x++)
+                    if (x * y >= p.MinIngredients * 2 && x * y <= p.MaxCells)
                     {
-                        usedCells[x, y] = null;
+                        PossibleCuts.Add(new IntVector2(x, y));
                     }
-                }
-
-                while (true)
-                {
-                    //Generate possible expansions
-                    List<Slice> possibleExpansions = slices[i].PossibleExpansions();
-
-                    //Check validity for each possible slice
-                    foreach (Slice pos in possibleExpansions)
-                    {
-                        if (!pos.ValidSlice())
-                        {
-                            possibleExpansions.Remove(pos);
-                        }
-                    }
-
-                    //If no possible next slices and this slice is not correct, remove it from the slices list
-                    if (possibleExpansions.Count == 0)
+                    else if (x * y > p.MaxCells)
                     {
                         break;
                     }
+                }
+            }
 
-                    //Choose a random possible slice
-                    slices[i] = possibleExpansions[r.Next(0, possibleExpansions.Count)];
+            //Reset all values of the slicer to their initial values
+            ResetSlicer();
 
-                    if(slices[i].CorrectSlice())
+            //Shuffle the list of possible cuts
+            PossibleCuts.Shuffle();
+        }
+
+        public void GenerateSlices()
+        {
+            for (int y = 0; y < CurrentPizza.Height; y++)
+            {
+                for (int x = 0; x < CurrentPizza.Width; x++)
+                {
+                    //If the current cell is being used by a slice, continue
+                    if (usedCells[x, y])
                     {
-                        lastCorrect = new Slice(this, slices[i].X, slices[i].Y, slices[i].Width, slices[i].Height);
+                        continue;
                     }
-                }
 
-                if(lastCorrect != null)
-                {
-                    newSlices.Add(lastCorrect);
-                }
-                else
-                {
-                    newSlices.Remove(slices[i]);
+                    //Shuffle the list of possible cuts
+                    PossibleCuts.Shuffle();
+
+                    //Try and find a valid slice to put in this position from the list of possible cuts
+                    foreach (IntVector2 cut in PossibleCuts)
+                    {
+                        //Check if this slice is valid
+                        int tomatosInSlice = 0;
+                        int mushroomsInSlice = 0;
+                        bool correctSlice = true;
+
+                        for (int sliceY = y; sliceY < y + cut.Y; sliceY++)
+                        {
+                            for (int sliceX = x; sliceX < x + cut.X; sliceX++)
+                            {
+                                if (sliceX >= CurrentPizza.Width || sliceY >= CurrentPizza.Height || usedCells[sliceX, sliceY])
+                                {
+                                    correctSlice = false;
+                                    break;
+                                }
+                                else
+                                {
+                                    if (CurrentPizza.GetCell(sliceX, sliceY) == Pizza.TOMATO)
+                                    {
+                                        tomatosInSlice++;
+                                    }
+                                    else if (CurrentPizza.GetCell(sliceX, sliceY) == Pizza.MUSHROOM)
+                                    {
+                                        mushroomsInSlice++;
+                                    }
+                                    else
+                                    {
+                                        throw new Exception("Unknown ingredient encountered!");
+                                    }
+                                }
+                            }
+
+                            if (!correctSlice)
+                            {
+                                break;
+                            }
+                        }
+
+                        //If there is not enough ingredients on the pizza, invalidate it
+                        if (tomatosInSlice < CurrentPizza.MinIngredients || mushroomsInSlice < CurrentPizza.MinIngredients)
+                        {
+                            correctSlice = false;
+                        }
+
+                        //If this slice is not valid, continue
+                        if (!correctSlice)
+                        {
+                            continue;
+                        }
+
+                        //If this slice is valid, add it to the pizza and break out of the foreach loop
+                        AddSlice(new Slice(this, x, y, cut.X, cut.Y));
+                        break;
+                    }
                 }
             }
         }
 
         public void AddSlice(Slice s)
         {
-            if (s.ValidSlice())
-            {
-                slices.Add(s);
-            }
+            slices.Add(s);
 
             for (int y = s.Y; y < s.Y + s.Height; y++)
             {
                 for (int x = s.X; x < s.X + s.Width; x++)
                 {
-                    usedCells[x, y] = s;
-                }
-            }
-        }
-
-        public void RemoveSlice(Slice s)
-        {
-            if (slices.Contains(s))
-            {
-                slices.Remove(s);
-            }
-
-            for (int y = s.Y; y < s.Y + s.Height; y++)
-            {
-                for (int x = s.X; x < s.X + s.Width; x++)
-                {
-                    usedCells[x, y] = null;
+                    usedCells[x, y] = true;
                 }
             }
         }
@@ -142,7 +139,7 @@ namespace PizzaCutter
             {
                 for (int x = 0; x < CurrentPizza.Width; x++)
                 {
-                    usedCells[x, y] = null;
+                    usedCells[x, y] = false;
                 }
             }
 
@@ -150,27 +147,17 @@ namespace PizzaCutter
             slices = new List<Slice>();
         }
 
-        public Slice CellTaken(int x, int y)
-        {
-            return usedCells[x, y];
-        }
-
         public int Score
         {
             get
             {
                 int score = 0;
-                int incorrectSlices = 0;
 
                 foreach (Slice s in slices)
                 {
-                    if (s.ValidSlice() && s.CorrectSlice())
+                    if (s.CorrectSlice())
                     {
                         score += s.Area;
-                    }
-                    else if (s.ValidSlice())
-                    {
-                        incorrectSlices++;
                     }
                     else
                     {
@@ -178,10 +165,15 @@ namespace PizzaCutter
                     }
                 }
 
-                Console.WriteLine("Obtained " + score + " from " + slices.Count + " slices! " + incorrectSlices + " slices were incorrect!");
+                Console.WriteLine("Obtained " + score + " from " + slices.Count + " slices! ");
 
                 return score;
             }
+        }
+
+        public List<Slice> CopySlices()
+        {
+            return new List<Slice>(slices);
         }
     }
 }

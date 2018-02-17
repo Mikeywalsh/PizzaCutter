@@ -24,42 +24,6 @@ namespace PizzaCutter
             Height = height;
         }
 
-        public bool ValidSlice()
-        {
-            //If the slice does not fit in the pizza, return false
-            if (X < 0 || Y < 0 || X > cutter.CurrentPizza.Width || Y > cutter.CurrentPizza.Height || X + Width > cutter.CurrentPizza.Width || Y + Height > cutter.CurrentPizza.Height)
-            {
-                return false;
-            }
-
-            //If this slice shares space with another slice, return false
-            for (int y = Y; y < Y + Height; y++)
-            {
-                for (int x = X; x < X + Width; x++)
-                {
-                    if (cutter.CellTaken(x, y) != this && cutter.CellTaken(x,y) != null)
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            //Return true otherwise
-            return true;
-        }
-
-        public List<Slice> PossibleExpansions()
-        {
-            List<Slice> result = new List<Slice>();
-
-            result.Add(new Slice(cutter, X - 1, Y, Width + 1, Height));
-            result.Add(new Slice(cutter, X, Y, Width + 1, Height));
-            result.Add(new Slice(cutter, X, Y - 1, Width, Height + 1));
-            result.Add(new Slice(cutter, X, Y, Width, Height + 1));
-
-            return result;
-        }
-
         public bool CorrectSlice()
         {
             int tomatos = 0;
@@ -104,6 +68,11 @@ namespace PizzaCutter
         public int Area
         {
             get { return Width * Height; }
+        }
+
+        public override string ToString()
+        {
+            return Y + " " + X + " " + (Y + Height - 1) + " " + (X + Width - 1);
         }
     }
 }
