@@ -6,8 +6,8 @@ namespace PizzaCutter
 {
     class Program
     {
-        static string FileName = "big";
-        static int Iterations = 1000;
+        static string FileName = "medium";
+        static int Iterations = 10000;
 
         static void Main(string[] args)
         {
